@@ -1,0 +1,47 @@
+---
+title: "Exploratory Analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(DataExplorer)
+library(lubridate)
+games1<-read.csv("/home/Shalini/Desktop/SEM 5/DA/Project/bgg_db_2018_01.csv")
+```
+Performing Basic Analysis on Dataset1 
+
+```{r}
+head(games1)
+colnames(games1)
+```
+
+
+```{r}
+plot_str(games1)
+games1$bgg_url<-as.character(games1$bgg_url)
+games1$names<-as.character(games1$names)
+games1$year<-year(as.Date(as.character(games1$year), format="%Y"))
+games1$image_url<-as.character(games1$image_url)
+games1$designer<-as.character(games1$designer)
+summary(games1)
+```
+Some of the years were given as -3000 and -2200. Those got converted to NA values
+```{r}
+plot_missing(games1)
+#Replacing NA values with 0
+games1[is.na(games1)]<-0
+plot_missing(games1)
+```
+
+```{r}
+plot_histogram(games1)
+```
+
+```{r}
+plot_density(games1)
+```
+
+```{r}
+plot_correlation(games1)
+```
