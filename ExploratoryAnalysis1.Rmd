@@ -1,0 +1,115 @@
+---
+title: "Exploratory Analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(DataExplorer)
+library(lubridate)
+workdir <- "C:/Users/salon/Desktop/Fifth Semester/Data Analytics/Project Datasets/board-game-data"
+setwd(workdir)
+dat <- read.csv("bgg_db_2018_01.csv")
+```
+Performing Basic Analysis on Dataset1 
+
+```{r}
+head(dat)
+colnames(dat)
+```
+
+Some of the years were given as -3000 and -2200. Those got converted to NA values
+```{r}
+plot_missing(dat)
+#Replacing NA values with 0
+dat[is.na(dat)]<-0
+plot_missing(dat)
+```
+```{r}
+plot_str(dat)
+dat$bgg_url<-as.character(dat$bgg_url)
+dat$names<-as.character(dat$names)
+dat$year<-year(as.Date(as.character(dat$year), format="%Y"))
+dat$image_url<-as.character(dat$image_url)
+dat$designer<-as.character(dat$designer)
+summary(dat)
+```
+
+```{r}
+plot_histogram(dat)
+```
+
+```{r}
+plot_density(dat)
+```
+
+```{r}
+plot_correlation(dat)
+```
+
+```{r}
+dat1 <- read.csv("bgg_db_2017_04.csv")
+```
+```{r}
+head(dat1)
+colnames(dat1)
+```
+```{r}
+plot_missing(dat1)
+#Replacing NA values with 0
+dat[is.na(dat1)]<-0
+plot_missing(dat1)
+```
+
+```{r}
+plot_str(dat1)
+dat1$bgg_url<-as.character(dat1$bgg_url)
+dat1$names<-as.character(dat1$names)
+dat1$year<-year(as.Date(as.character(dat1$year), format="%Y"))
+dat1$image_url<-as.character(dat1$image_url)
+dat1$designer<-as.character(dat1$designer)
+summary(dat1)
+```
+
+```{r}
+plot_histogram(dat1)
+```
+```{r}
+plot_density(dat1)
+```
+```{r}
+plot_correlation(dat1)
+```
+```{r}
+dat2 <- read.csv("bgg_db_1806.csv")
+```
+```{r}
+head(dat2)
+colnames(dat2)
+```
+```{r}
+plot_missing(dat2)
+#Replacing NA values with 0
+dat[is.na(dat2)]<-0
+plot_missing(dat2)
+```
+```{r}
+plot_str(dat2)
+dat2$bgg_url<-as.character(dat2$bgg_url)
+dat2$names<-as.character(dat2$names)
+dat2$year<-year(as.Date(as.character(dat2$year), format="%Y"))
+dat2$image_url<-as.character(dat2$image_url)
+dat2$designer<-as.character(dat2$designer)
+summary(dat2)
+```
+```{r}
+plot_histogram(dat2)
+```
+```{r}
+plot_density(dat2)
+```
+
+```{r}
+plot_correlation(dat2)
+```
+
