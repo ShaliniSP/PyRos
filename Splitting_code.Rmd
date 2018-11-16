@@ -1,0 +1,36 @@
+---
+title: "DA_dataSplit"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(caTools)
+
+workdir <- "C:/Users/salon/Desktop/Fifth Semester/Data Analytics/Project Datasets/board-game-data"
+setwd(workdir)
+data <- read.csv("ratings.csv", header=TRUE)
+set.seed(101) 
+#sample = sample.split(data$anycolumn, SplitRatio = .85)
+#later_data = subset(data, sample == TRUE)
+#now_data  = subset(data, sample == FALSE)
+sample <- sample.int(n = nrow(data), size = floor(.85*nrow(data)), replace = F)
+later_data <- data[sample, ]
+now_data  <- data[-sample, ]
+```
+```{r}
+View(now_data)
+```
+```{r}
+sample <- sample.int(n = nrow(now_data), size = floor(.75*nrow(now_data)), replace = F)
+train_data <- now_data[sample, ]
+test_data  <- now_data[-sample, ]
+```
+
+```{r}
+View(train_data)
+View(test_data)
+```
+
