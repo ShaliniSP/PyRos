@@ -24,11 +24,11 @@ sample <- sample.int(n = nrow(user_game), size = floor(.8*nrow(user_game)), repl
 train <- user_game[sample, ]
 test <- user_game[-sample, ]
 ```
-
+ 
 ```{r}
 train <- as.data.frame(train)
 test <- as.data.frame(test)
 train_mat <- as(train, "realRatingMatrix")
-test_mat <- as(test, "realRatingMatrix")
+test_mat <- as(test, "realRatingMatrix") 
 ```
 
