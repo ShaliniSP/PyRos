@@ -1,0 +1,34 @@
+---
+title: "Preprocessing"
+output: html_document
+---
+```{r}
+library(recommenderlab)
+```
+
+```{r}
+df <- read.csv('/home/Shalini/Desktop/SEM 5/DA/Project/PyRos-master/ratings.csv')
+```
+
+```{r}
+user_game <-df %>% group_by(gameid, username) %>% summarise(freq = mean(rating))
+users <- user_game %>% group_by((username)) %>% summarise(freq = n())
+users <- users[users$freq > 400, ]
+user_game <- user_game %>% filter(username %in% users$`(username)`)
+```
+
+```{r}
+set.seed(101)
+colnames(user_game) <- c("gameid", "username", "rating")
+sample <- sample.int(n = nrow(user_game), size = floor(.8*nrow(user_game)), replace = F)
+train <- user_game[sample, ]
+test <- user_game[-sample, ]
+```
+
+```{r}
+train <- as.data.frame(train)
+test <- as.data.frame(test)
+train_mat <- as(train, "realRatingMatrix")
+test_mat <- as(test, "realRatingMatrix")
+```
+
