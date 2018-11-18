@@ -1,0 +1,84 @@
+---
+title: "ContentBased"
+output: html_document
+---
+```{r}
+library(dplyr)
+library(data.table)
+library(proxy)
+
+```
+
+```{r}
+BoardGames <- read.csv("bgg_db_2018_01.csv")
+games <- read.csv("FixedGames.csv")
+users <- read.csv("ratings.csv")
+```
+Getting users who have only rated the games in the games dataset
+```{r}
+users <- users %>% filter(gameid %in% games$game_id)
+```
+Removing user game ratings that have occured more than once
+```{r}
+users <- users[!duplicated(users[, 1:2]),]
+```
+Taking users who have rated between 400 and 500 games
+```{r}
+user_freq <- users %>% group_by(username) %>% summarise(freq = n())
+hist(user_freq$freq)
+fusers <- users %>% filter(users$username %in% user_freq[user_freq$freq>400 & user_freq$freq <500, 1]$username)
+```
+Creating the user profile matrix
+```{r}
+hist(fusers$rating)
+summary(fusers$rating)
+```
+Creating a rating matrix taking ratings as the cell of the game and user
+```{r}
+ratings <- dcast(fusers, gameid~username, value.var = "rating", na.rm =FALSE)
+ratings[,1] <- NULL 
+ratings[is.na(ratings)]<- 0
+```
+Drop the games that have not been rated by this subset of users
+```{r}
+gameID <- unique(fusers$gameid)
+fgames <- games[which(games$game_id %in% gameID), ]
+```
+Remove extra columns from fgames like X, rank, year, weight and owned
+```{r}
+fgames[, c( 1, 2, 9, 14, 15)] <- NULL
+```
+Dot product of user profiles
+```{r}
+res <- matrix(0 , ncol(fgames), ncol(ratings))
+for(c in 1:ncol(ratings)){
+  for(i in 2:ncol(fgames)){    #first col is gameid
+    res[i, c] <- sum(as.numeric(fgames[, i] * ratings[, c]))
+  }
+}
+```
+So now we have user profiles for each feature of a game. We need to standardize this to see the inclination of the user to that feature
+```{r}
+re_df <- as.data.frame(t(res)) #rows - users, cols - features
+#re_df[1] <- NULL
+scaled_df <- scale(re_df[, 2:ncol(re_df)])#scaled features
+d <- matrix(0, nrow(scaled_df), 1)
+scaled_df <- cbind(d, scaled_df)
+fres <- t(scaled_df)#cols - user, row - feature
+```
+
+Now to recommend data to a user.
+Eg: user[1]
+```{r}
+user_prof <- fres[,3]
+scaled_fgame <- scale(fgames[, 2:ncol(fgames)])
+scaled_fgame <- as.data.frame(cbind(fgames$game_id, scaled_fgame))
+colnames(scaled_fgame)[1] <- "gameid"
+sim_mat <- rbind.data.frame(user_prof, scaled_fgame)
+sim_mat <- data.frame(lapply(sim_mat,function(x){as.integer(x)})) #convert data to type integer
+sim_res <- dist(sim_mat, method = "Jaccard")
+sim_res <- as.data.frame(as.matrix(sim_res[1:842]))
+rows <- which((sim_res == min(sim_res)))
+fgames[rows, ]
+```
+
