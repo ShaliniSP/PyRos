@@ -10,18 +10,16 @@ df2 <- read.csv('/home/Shalini/Desktop/SEM 5/DA/Project/Datasets/bgg_db_2017_04.
 df3 <- read.csv('/home/Shalini/Desktop/SEM 5/DA/Project/Datasets/bgg_db_1806.csv')
 ```
 ```{r}
+setwd()
+```
+```{r}
 df1 <- df1[order(df1$rank), ]
-#df2 <- df2[order(df2$rank), ]
-#df3 <- df3[order(df3$rank), ]
 Rank_df1 <- df1
-#Rank_df2 <- df2[1:20, ]
-#Rank_df3 <- df3[1:20, ]
+
 ```
 Splitting Mechanic and Categorical Variables
 ```{r}
 catSplit1 <- cSplit(Rank_df1, "category", ",")
-#catSplit2 <- cSplit(Rank_df2, "category", ",")
-#catSplit3 <- cSplit(Rank_df3, "category", ",")
 catSplitDummy <- Rank_df1
 for (i in 1:nrow(catSplit1)){
   for(j in 21:27){
@@ -38,8 +36,6 @@ catSplitDummy[is.na(catSplitDummy)] <- 0
 
 
 mechSplit1 <- cSplit(Rank_df1, "mechanic", ",")
-#catSplit2 <- cSplit(Rank_df2, "category", ",")
-#catSplit3 <- cSplit(Rank_df3, "category", ",")
 mechSplitDummy <- Rank_df1
 for (i in 1:nrow(mechSplit1)){
   for(j in 21:27){
