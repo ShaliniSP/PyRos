@@ -1,12 +1,17 @@
 ---
-title: "ContentBased"
+title: "Content Based Filtering 2"
 output: html_document
 ---
+Libraries Used
 ```{r}
 library(dplyr)
 library(data.table)
 library(proxy)
-
+library(lsa)
+library(pracma)
+library(rlist)
+library(splitstackshape)
+library(apcluster)
 ```
 
 ```{r}
@@ -18,67 +23,173 @@ Getting users who have only rated the games in the games dataset
 ```{r}
 users <- users %>% filter(gameid %in% games$game_id)
 ```
-Removing user game ratings that have occured more than once
+Removing user game ratings that have occured more than once and getting their unique userid
 ```{r}
-users <- users[!duplicated(users[, 1:2]),]
+trial <- users[!duplicated(users[, 1:2]),]
+trial$userid <- as.numeric(factor(trial$username, levels = unique(trial$username)))
 ```
-Taking users who have rated between 400 and 500 games
+Taking users who have rated between 300 and 500 games
 ```{r}
-user_freq <- users %>% group_by(username) %>% summarise(freq = n())
-hist(user_freq$freq)
-fusers <- users %>% filter(users$username %in% user_freq[user_freq$freq>400 & user_freq$freq <500, 1]$username)
+user_freq <- trial %>% group_by(userid) %>% summarise(freq = n())
+hist(user_freq$freq, main = "Histogram of Number of Games rated per User", xlab = "Games rated per user", ylab = "Frequeny")
+print(summary(user_freq$freq))
+#See whether less users more games is better or more games and less users
+#More games less users
+no_of_users <- count(user_freq[user_freq$freq>300 & user_freq$freq <500, 1])
+print(no_of_users)
+user_ids_ <- user_freq[user_freq$freq>300 & user_freq$freq <500, 1]$userid
+user_ids_ <- as.factor(user_ids_)
+set.seed(123)
+samp <- sample(user_ids_, 0.3*length(user_ids_), replace = F)
+sample_uid <- user_ids_[samp]
+fusers <- trial %>% filter(trial$userid %in% sample_uid)
 ```
-Creating the user profile matrix
+
+Making the ratings binary 0 -dislike 1 -like
 ```{r}
-hist(fusers$rating)
-summary(fusers$rating)
+fusers$userid <- as.factor(fusers$userid)
+fusers$rating <- scale(fusers$rating)
+hist(fusers$rating, main = "Histogram of Scaled Ratings given by the users", xlab = "Scaled Rating", ylab = "No. of users")
+binaryratings <- fusers
+for (i in 1:nrow(binaryratings)){
+ if (binaryratings[i,3] > 0){
+   binaryratings[i,3] <- 1
+ }
+ else{
+   binaryratings[i,3] <- 0
+ }
+}
+```
+Creating user test and train data
+```{r}
+binaryratings$rating<- as.factor(binaryratings$rating)
+set.seed(1)
+train <- stratified(binaryratings, ("userid"), 0.6)
+test <- anti_join(binaryratings, train)
+```
+
+Creating the user profile matrix based on train data
+```{r}
+#hist(train$rating)
+#summary(train$rating)
 ```
 Creating a rating matrix taking ratings as the cell of the game and user
 ```{r}
-ratings <- dcast(fusers, gameid~username, value.var = "rating", na.rm =FALSE)
-ratings[,1] <- NULL 
+ratings <- dcast(train, gameid~userid, value.var = "rating", na.rm =FALSE)
 ratings[is.na(ratings)]<- 0
+#the first column of ratings is the game id
+#Adding the user id to the first row as well
+userids <- colnames(ratings)
+userids[1] <- 0
+userids <- as.data.frame(userids)
+
 ```
 Drop the games that have not been rated by this subset of users
 ```{r}
-gameID <- unique(fusers$gameid)
+gameID <- unique(binaryratings$gameid)
 fgames <- games[which(games$game_id %in% gameID), ]
 ```
-Remove extra columns from fgames like X, rank, year, weight and owned
+Remove extra columns from fgames except category and mechanic
 ```{r}
-fgames[, c( 1, 2, 9, 14, 15)] <- NULL
+fgames[, c( 1, 2, 4:15)] <- NULL
 ```
 Dot product of user profiles
+User vs feature matrix
 ```{r}
-res <- matrix(0 , ncol(fgames), ncol(ratings))
-for(c in 1:ncol(ratings)){
-  for(i in 2:ncol(fgames)){    #first col is gameid
-    res[i, c] <- sum(as.numeric(fgames[, i] * ratings[, c]))
+fgames <- fgames %>% filter(fgames$game_id %in% ratings$gameid)
+Fratings <- as.matrix(ratings[, 1:ncol(ratings)])
+Fgames <- as.matrix(fgames[, 2:ncol(fgames)])
+res <- matrix(0 , ncol(Fgames), ncol(Fratings))
+for(c in 2:ncol(Fratings)){
+  for(i in 2:ncol(Fgames)){    #first col is gameid
+    res[i, c] <- sum(as.numeric(Fgames[, i]) * as.numeric(Fratings[, c]))
   }
 }
+res <- scale(res)
+res[is.na(res)] <- 0
 ```
 So now we have user profiles for each feature of a game. We need to standardize this to see the inclination of the user to that feature
 ```{r}
-re_df <- as.data.frame(t(res)) #rows - users, cols - features
-#re_df[1] <- NULL
-scaled_df <- scale(re_df[, 2:ncol(re_df)])#scaled features
-d <- matrix(0, nrow(scaled_df), 1)
-scaled_df <- cbind(d, scaled_df)
-fres <- t(scaled_df)#cols - user, row - feature
+for (i in 1:nrow(res)){
+  for(j in 1:ncol(res)){
+    if (res[i,j] < 0){
+      res[i,j] <- 0
+    }
+    else {
+      res[i,j] <- 1
+    }
+  }
+  
+}
+userids <- t(userids)
+Fres <- rbind(userids, res)
+Fdf <- as.data.frame(Fres)
+Fdf$userids <- NULL
 ```
 
 Now to recommend data to a user.
-Eg: user[1]
+Eg: user[3]
 ```{r}
-user_prof <- fres[,3]
-scaled_fgame <- scale(fgames[, 2:ncol(fgames)])
-scaled_fgame <- as.data.frame(cbind(fgames$game_id, scaled_fgame))
-colnames(scaled_fgame)[1] <- "gameid"
-sim_mat <- rbind.data.frame(user_prof, scaled_fgame)
-sim_mat <- data.frame(lapply(sim_mat,function(x){as.integer(x)})) #convert data to type integer
-sim_res <- dist(sim_mat, method = "Jaccard")
-sim_res <- as.data.frame(as.matrix(sim_res[1:842]))
-rows <- which((sim_res == min(sim_res)))
-fgames[rows, ]
+Recommend <- function (similarity_matrix)
+{
+  similar_games <- similarity_matrix[1,]
+  similar_games <- similar_games[-1]
+  similar_games <-as.data.frame(t(rbind(fgames$game_id, similar_games)))
+  colnames(similar_games) <- c("gameid", "similarity")
+  sorted <- similar_games[order(-similar_games$similarity),]
+  print(sorted)
+  recom <- sorted[1:20, ]$gameid
+  recom
+}
+```
+
+```{r}
+similar_Mat_gen <- function(i) 
+{
+  user_prof <- Fres[1:nrow(Fdf),i]
+  mat <- rbind.data.frame(user_prof, fgames)
+  mat[1,1] <- 0
+  sim_mat <- mat
+  sim_mat <- data.frame(lapply(sim_mat,function(x){as.integer(x)}))
+  sim_mat$game_id <- NULL
+  sim_mat <- as.matrix(sim_mat)
+  Predicted_User <- Fres[1, i]
+  Rated_Games_Train <- train[train$userid == Predicted_User, ]
+  Rated_Games_Test <- test[test$userid == Predicted_User, ]
+  similarity_matrix_cor <- corSimMat(sim_mat, r = 1, method = "pearson")
+  recom_cor <- Recommend(similarity_matrix_cor)
+  similarity_matrix_cos <- cosine(t(sim_mat))
+  recom_cos <- Recommend(similarity_matrix_cos)
+  Acc_train_cor <- length(recom_cor[recom_cor %in% Rated_Games_Train$gameid])/length(recom_cor)
+  Acc_test_cor <- length(recom_cor[recom_cor %in% Rated_Games_Test$gameid])/length(recom_cor)
+  Acc_train_cos <- length(recom_cos[recom_cos %in% Rated_Games_Train$gameid])/length(recom_cos)
+  Acc_test_cos <- length(recom_cos[recom_cos %in% Rated_Games_Test$gameid])/length(recom_cos)
+  return(list(Acc_train_cor, Acc_test_cor, Acc_train_cos, Acc_test_cos))
+}
+```
+
+```{r}
+Corr_Train_Accuracy <- vector(mode = "list", length = 0)
+Cos_Train_Accuracy <- vector(mode = "list", length = 0)
+Corr_Test_Accuracy <- vector(mode = "list", length = 0)
+Cos_Test_Accuracy <- vector(mode = "list", length = 0)
+
+set.seed(5)
+users_gen <- sample.int(ncol(Fdf), 20)
+for(i in 2:20)
+{
+  x <- similar_Mat_gen(users_gen[i])
+  Corr_Train_Accuracy <- c(Corr_Train_Accuracy, x[1])
+  Corr_Test_Accuracy <- c(Corr_Test_Accuracy, x[2])
+  Cos_Train_Accuracy <- c(Cos_Train_Accuracy, x[3])
+  Cos_Test_Accuracy <- c(Cos_Test_Accuracy, x[4])
+}
+```
+Finding the mean Accuracy
+```{r}
+print(mean(as.numeric(Corr_Train_Accuracy))*100)
+print(mean(as.numeric(Corr_Test_Accuracy))*100)
+print(mean(as.numeric(Cos_Train_Accuracy))*100)
+print(mean(as.numeric(Cos_Test_Accuracy))*100)
 ```
 
