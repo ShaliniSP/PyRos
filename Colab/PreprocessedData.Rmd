@@ -1,0 +1,44 @@
+---
+title: "Collaborative Filtering"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(recommenderlab)
+```
+
+```{r}
+df <- read.csv('C:/Users/salon/Desktop/Fifth Semester/Data Analytics/Project Datasets/board-game-data/ratings.csv')
+```
+
+```{r}
+library(dplyr)
+#Getting frequency of every possible (gameid, username) combination
+user_game <-df %>% group_by(gameid, username) %>% summarise(freq = mean(rating))
+#Getting the count of occurences, number of times user has rated total
+users <- user_game %>% group_by((username)) %>% summarise(freq = n())
+#Selecting users who have rated more than 400 games total
+users <- users[users$freq > 400, ]
+user_game <- user_game %>% filter(username %in% users$`(username)`)
+```
+
+```{r}
+set.seed(101)
+#Splitting in to test and train data set
+colnames(user_game) <- c("gameid", "username", "rating")
+sample <- sample.int(n = nrow(user_game), size = floor(.8*nrow(user_game)), replace = F)
+train <- user_game[sample, ]
+test <- user_game[-sample, ]
+```
+ 
+```{r}
+train <- as.data.frame(train)
+test <- as.data.frame(test)
+write.csv(train, file = "train_data.csv",row.names=FALSE)
+write.csv(test, file = "test_data.csv",row.names=FALSE)
+```
+
