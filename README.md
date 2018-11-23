@@ -5,10 +5,12 @@ The second gives information about the user, game and rating.
 
 To run Collaborative Filtering:
 
-To run Content Based Filtering:
--Open the Content Based Filtering Folder.
--Download the datasets in that folder.
--Open both the R Markdowns and set working directory to your working directory.
--Run MakingGameFeatures.Rmd first.
--Then run ContentBasedFiltering.Rmd
+
+
+## To run Content Based Filtering:
+*Open the Content Based Filtering Folder.
+*Download the datasets in that folder.
+*Open both the R Markdowns and set working directory to your working directory.
+*Run MakingGameFeatures.Rmd first.
+*Then run ContentBasedFiltering.Rmd
 ContentBasedFiltering.Rmd takes a while to run
