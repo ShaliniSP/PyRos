@@ -13,7 +13,9 @@ library(rlist)
 library(splitstackshape)
 library(apcluster)
 ```
-
+```{r}
+setwd()
+```
 ```{r}
 BoardGames <- read.csv("bgg_db_2018_01.csv")
 games <- read.csv("FixedGames.csv")
