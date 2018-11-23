@@ -1,0 +1,33 @@
+---
+title: "Subset"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+users <- read.csv("/home/Shalini/Desktop/SEM 5/DA/Project/Collaborative Filtering/test_data.csv")
+trial <- users[!duplicated(users[, 1:2]),]
+trial$userid <- as.numeric(factor(trial$username, levels = unique(trial$username)))
+user_freq <- trial %>% group_by(userid) %>% summarise(freq = n())
+user_ids_ <- user_freq[user_freq$freq==1, 1]$userid
+user_ids_ <- as.factor(user_ids_)
+set.seed(123)
+samp <- sample(user_ids_, 0.01*length(user_ids_), replace = F)
+sample_uid <- user_ids_[samp]
+fusers <- trial %>% filter(trial$userid %in% sample_uid)
+#fusers["userid"] <- NULL
+
+#write.csv(fusers, "Sampledusertrain(0_01).csv")
+```
+
+```{r}
+fusers <- read.csv("collab_test.csv")
+#fusers[c("X", "userid")] <- NULL
+sample <- sample.int(n = nrow(fusers), size = floor(.8*nrow(fusers)), replace = F)
+train_data <- fusers[sample, ]
+test_data  <- fusers[-sample, ]
+write.csv(train_data, "collab_train.csv")
+write.csv(test_data, "collab_test.csv")
+
+```
+
